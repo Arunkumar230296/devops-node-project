@@ -29,10 +29,25 @@ pipeline {
             }
         }
 
-        stage('Deploy to EKS') {
+        stage('Update Helm Chart Image Tag') {
             steps {
-                sh 'kubectl set image deployment/devops-node-app devops-node-app=$IMAGE_URI'
-                sh 'kubectl rollout status deployment/devops-node-app'
+                sh '''
+                sed -i "s|image: .*|image: $IMAGE_URI|g" devops-node-chart/templates/deployment.yaml
+                '''
+            }
+        }
+
+        stage('Push Updated Helm Chart to GitHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    sh '''
+                    git config user.name "Jenkins"
+                    git config user.email "jenkins@local"
+                    git add devops-node-chart/templates/deployment.yaml
+                    git commit -m "update helm image to build $BUILD_NUMBER" || true
+                    git push https://$GIT_USER:$GIT_PASS@github.com/Arunkumar230296/devops-node-project.git HEAD:main
+                    '''
+                }
             }
         }
     }
