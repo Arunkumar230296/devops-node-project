@@ -28,5 +28,12 @@ pipeline {
                 sh 'docker push $IMAGE_URI'
             }
         }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh 'kubectl set image deployment/devops-node-deployment devops-node-container=$IMAGE_URI'
+                sh 'kubectl rollout status deployment/devops-node-deployment'
+            }
+        }
     }
 }
